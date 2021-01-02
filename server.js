@@ -1,6 +1,21 @@
 const express = require('express');
 const bcrypt = require('bcrypt-nodejs')
 const cors = require('cors');
+const { response } = require('express');
+const register = require('./controllers/register');
+const signin = require('./controllers/signin');
+const profile = require('./controllers/profile');
+const image = require('./controllers/image');
+const knex = require('knex')({
+  client: 'pg',
+  connection: {
+    host : '127.0.0.1', // local host
+    user : '', 
+    password : '',
+    database : 'smartbrain'
+  }
+});
+
 
 const app = express();
 
@@ -8,79 +23,29 @@ const app = express();
 app.use(express.json()); // required to parse JSON
 app.use(cors());
 
-const database = {
-  users: [
-    {
-      id: '123',
-      name: 'Kukid',
-      email: 'kukid@gmail.com',
-      password: 'mug',
-      entries: 0,
-      joined: new Date()
-    },
-    {
-      id: '124',
-      name: 'Collin',
-      email: 'nkw@gmail.com',
-      password: 'tota',
-      entries: 0,
-      joined: new Date()
-    },
-  ]
-}
 
 app.get('/', (req, res) => {
-  res.send(database.users);
+  res.send('success');
 })
 
 app.post('/signin', (req, res) => {
-  if (req.body.email === database.users[0].email &&
-      req.body.password === database.users[0].password) {
-    res.json(database.users[0]);
-  } else {
-    res.status(400).json('error logging in');
-  }
+  signin.handleSignin(req, res, knex, bcrypt)
 })
 
 app.post('/register', (req, res) => {
-  const { email, name } = req.body;
-  database.users.push({
-    id: '125',
-    name: name,
-    email: email,
-    entries: 0,
-    joined: new Date()
-  })
-  res.json(database.users[database.users.length-1]);
+  register.handleRegister(req, res, knex, bcrypt)
 })
 
-app.get('/profile/:id', (req, res) => { // :id syntax allows id to be anything
-  const { id } = req.params;
-  let found = false;
-  database.users.forEach(user => {
-    if (user.id === id) {
-      found = true;
-      return res.json(user);
-    } 
-  })
-  if (!found) {
-    res.status(400).json("not found");
-  }
+app.get('/profile/:id', (req, res) => {
+  profile.handleProfileGet(req, res, knex)
 })
 
 app.put('/image', (req, res) => {
-  const { id } = req.body;
-  let found = false;
-  database.users.forEach(user => {
-    if (user.id === id) {
-      found = true;
-      user.entries++;
-      return res.json(user.entries);
-    } 
-  })
-  if (!found) {
-    res.status(400).json("not found");
-  }
+  image.handleImage(req, res, knex)
+})
+
+app.post('/imageurl', (req, res) => {
+  image.handleApiCall(req, res)
 })
 
 app.listen(3000, () => {
